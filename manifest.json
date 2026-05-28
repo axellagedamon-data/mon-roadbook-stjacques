@@ -1,0 +1,22 @@
+{
+  "name": "Roadbook Assistance - Trail de St Jacques",
+  "short_name": "StJacquesCrew",
+  "description": "Roadbook d'assistance offline pour le Trail de Saint Jacques",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#164822",
+  "theme_color": "#164822",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/164822/ffffff?text=TSJ",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://placehold.co/512x512/164822/ffffff?text=TSJ",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

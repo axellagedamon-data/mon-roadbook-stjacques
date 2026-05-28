@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Roadbook d'Assistance - Trail de St Jacques</title>
+    
+    <!-- Fallback de style immédiat en cas d'absence de réseau avant l'initialisation de Tailwind -->
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 0;
+        }
+        #offline-loader {
+            position: fixed;
+            inset: 0;
+            background-color: #164822;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Style pour le tiroir (Bottom Sheet) pour garantir des transitions GPU fluides */
+        .bottom-sheet-backdrop {
+            transition: opacity 300s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bottom-sheet-content {
+            transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(100%);
+            max-height: 85vh;
+        }
+        .bottom-sheet-active .bottom-sheet-content {
+            transform: translateY(0);
+        }
+    </style>
+
+    <script>
+        // Cette fonction charge Tailwind depuis le cache local (LocalStorage) s'il existe.
+        // Sinon, elle le télécharge en ligne et le met en cache pour les prochaines fois.
+        // Cela résout définitivement la dépendance critique au réseau (No CDN issues offline).
+        function loadFrameworksOffline() {
+            const cacheKeyTailwind = 'trail_cached_tailwind_v4';
+            const tailwindUrl = 'https://cdn.tailwindcss.com';
+            const cachedTailwind = localStorage.getItem(cacheKeyTailwind);
+
+            if (cachedTailwind) {
+                injectScript(cachedTailwind);
+                initTailwindConfig();
+                hideLoader();
+            } else {
+                // Essai de téléchargement en ligne
+                fetch(tailwindUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network failed');
+                        return response.text();
+                    })
+                    .then(code => {
+                        localStorage.setItem(cacheKeyTailwind, code);
+                        injectScript(code);
+                        initTailwindConfig();
+                        console.log("Tailwind sauvegardé localement pour utilisation hors-ligne !");
+                        hideLoader();
+                    })
+                    .catch(err => {
+                        console.warn("Impossible de récupérer Tailwind en ligne (Mode Hors-ligne strict). Utilisation d'un rendu dégradé.");
+                        hideLoader();
+                    });
+            }
+        }
+
+        function injectScript(code) {
+            const script = document.createElement('script');
+            script.text = code;
+            document.head.appendChild(script);
+        }
+
+        function initTailwindConfig() {
+            if (window.tailwind) {
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                trailGreen: {
+                                    50: '#f2f8f3',
+                                    100: '#e1efe4',
+                                    500: '#1e5f2f',
+                                    600: '#164822',
+                                    700: '#103419',
+                                },
+                                trailOrange: '#e07a5f',
+                            }
+                        }
+                    }
+                };
+            }
+        }
+
+        function hideLoader() {
+            setTimeout(() => {
+                const loader = document.getElementById('offline-loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, 300);
+        }
+
+        window.addEventListener('DOMContentLoaded', loadFrameworksOffline);
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-16 antialiased select-none">
+
+    <!-- ECRAN DE CHARGEMENT HORS-LIGNE OPTIMISE -->
+    <div id="offline-loader">
+        <div class="spinner"></div>
+        <p class="mt-4 text-xs font-bold tracking-widest uppercase text-emerald-100">Chargement du Roadbook</p>
+        <p class="text-[10px] mt-1 text-emerald-300/80">Vérification de la base de données hors-ligne...</p>
+    </div>
+
+    <!-- HEADER DE LA COURSE -->
+    <header class="bg-gradient-to-r from-trailGreen-600 to-trailGreen-700 text-white shadow-md relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div class="max-w-md mx-auto px-4 py-5 relative">
+            <div class="flex justify-between items-center">
+                <span class="bg-trailOrange text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
+                    Assistance - Pro UTMB
+                </span>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-emerald-300 font-bold flex items-center gap-1.5 bg-trailGreen-700/50 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                        13 Juin • 07:40
+                    </span>
+                    <!-- Bouton Configuration PWA en haut à droite -->
+                    <button onclick="openPWADashboard()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition text-white border border-white/10" title="Installation PWA">
+                        ⚙️
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <h1 class="text-2xl font-black tracking-tight leading-none">TRAIL DE ST JACQUES</h1>
+                <p class="text-xs text-emerald-200 font-medium mt-1 uppercase tracking-wider">Format Élite • 86.7 km • 3245m D+ / 3224m D-</p>
+            </div>
+
+            <!-- Météo Kit Selector -->
+            <div class="mt-4 bg-slate-950/50 p-3 rounded-xl border border-white/20">
+                <p class="text-[10px] text-white uppercase font-extrabold tracking-wider mb-2 flex items-center gap-1">
+                    <span>☀️</span> Kit Météo imposé par l'organisation :
+                </p>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button onclick="setWeatherKit('base')" id="btn-kit-base" class="py-2 px-2 rounded-lg text-xs font-black transition-all border border-emerald-500 bg-emerald-600 text-white shadow">
+                        Standard
+                    </button>
+                    <button onclick="setWeatherKit('chaud')" id="btn-kit-chaud" class="py-2 px-2 rounded-lg text-xs font-black transition-all border border-white/25 bg-white/10 text-white hover:bg-white/20">
+                        🔥 Chaud
+                    </button>
+                    <button onclick="setWeatherKit('froid')" id="btn-kit-froid" class="py-2 px-2 rounded-lg text-xs font-black transition-all border border-white/25 bg-white/10 text-white hover:bg-white/20">
+                        🌧️ Mauvais T.
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <div class="sticky top-0 bg-white/95 backdrop-blur-md shadow-sm z-30 border-b border-slate-200">
+        <div class="max-w-md mx-auto flex justify-around">
+            <button onclick="switchTab('roadbook')" id="tab-roadbook" class="flex-1 py-3.5 text-center text-xs font-black border-b-2 border-trailGreen-600 text-trailGreen-600 transition">
+                🗺️ PARCOURS
+            </button>
+            <button onclick="switchTab('logistique')" id="tab-logistique" class="flex-1 py-3.5 text-center text-xs font-black border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">
+                🚗 ACCÈS CAR
+            </button>
+            <button onclick="switchTab('checklist')" id="tab-checklist" class="flex-1 py-3.5 text-center text-xs font-black border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">
+                🎒 KITS & SAC
+            </button>
+            <button onclick="switchTab('nutrition')" id="tab-nutrition" class="flex-1 py-3.5 text-center text-xs font-black border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">
+                🧪 NUTRITION
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-md mx-auto px-4 mt-5">
+
+        <!-- ================= TAB: PARCOURS ================= -->
+        <section id="content-roadbook" class="space-y-4">
+            
+            <!-- Légende rapide -->
+            <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 text-xs flex justify-between items-center">
+                <span class="font-bold text-slate-700">⏱️ Comparateur horaires :</span>
+                <div class="flex gap-2">
+                    <span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">Cible</span>
+                    <span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-bold">B.H.</span>
+                    <span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Limites</span>
+                </div>
+            </div>
+
+            <!-- TIMELINE VISUELLE -->
+            <div class="relative pl-7 space-y-6">
+                <!-- Ligne verticale continue reliant les balises -->
+                <div class="absolute left-3 top-2 bottom-6 w-1 bg-slate-200 rounded-full z-0"></div>
+
+                <!-- DEPART -->
+                <div class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-4 z-10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-slate-400 border-4 border-white shadow-sm ring-4 ring-slate-100"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-400 rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider">Km 0 • Alt 610m</span>
+                                <h3 class="text-base font-black text-slate-800 mt-0.5">Monistrol d'Allier</h3>
+                            </div>
+                            <span class="bg-slate-100 text-slate-700 text-[10px] font-extrabold px-2 py-0.5 rounded">DÉPART</span>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-xs border-t border-slate-100 pt-2 text-slate-500">
+                            <div>🚀 Départ coureur : <span class="font-bold text-slate-800">sam. 07:40</span></div>
+                            <div>🚗 Départ voiture : <span class="font-bold text-slate-800">sam. 07:40</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHAPELLE DE ROCHEGUDE (HORS ASSISTANCE) -->
+                <div class="relative bg-slate-100 rounded-xl p-3 border border-slate-200 text-slate-600 text-[11px] leading-relaxed space-y-2 z-10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-slate-300 border-4 border-white shadow-sm ring-4 ring-slate-100"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-300 rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider">Km 4.2 • Alt 937m • Inter: 4.2km</span>
+                                <h3 class="text-sm font-bold text-slate-700 mt-0.5">Chapelle de Rochegude</h3>
+                                <p class="text-[10px] text-amber-700 font-semibold mt-0.5">⚠️ Zone sauvage - Accès interdit</p>
+                            </div>
+                            <span class="bg-slate-200 text-slate-700 text-[9px] px-1.5 py-0.5 rounded font-bold">Sans crew</span>
+                        </div>
+                        <div class="mt-3 flex gap-4 text-[10px] text-slate-500 border-t border-slate-100 pt-2">
+                            <span>📈 +337m</span>
+                            <span>📉 -11m</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAVITO 1: ST PRIVAT D'ALLIER -->
+                <div class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-4 z-10 ring-1 ring-emerald-500/10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-emerald-600 border-4 border-white shadow-sm ring-4 ring-emerald-50"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600 rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-emerald-600 tracking-wider">Km 11.3 • Alt 877m • Inter: 7km</span>
+                                <h3 class="text-base font-black text-slate-800 mt-0.5">Saint Privat d'Allier</h3>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">ASSISTANCE ✔️</span>
+                        </div>
+
+                        <!-- Écarts horaires comparateur -->
+                        <div class="mt-3 grid grid-cols-3 gap-1.5 p-2 bg-slate-50 rounded-lg text-center text-xs">
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⏱️ Cible</span>
+                                <span class="font-extrabold text-emerald-600">08:47 - 08:50</span>
+                            </div>
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⚡ Tête</span>
+                                <span class="font-bold text-slate-700">08:24</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">🐢 Derniers</span>
+                                <span class="font-bold text-slate-700">09:56</span>
+                            </div>
+                        </div>
+
+                        <!-- Infos Déniv / Services -->
+                        <div class="mt-3 flex justify-between items-center text-[10px] border-t border-slate-100 pt-2.5">
+                            <div class="flex gap-2 text-slate-500 font-semibold">
+                                <span>📈 +564m (cum)</span>
+                                <span>📉 -296m (cum)</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold text-[9px]">🍗 Solide</span>
+                                <span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold text-[9px]">🚻 WC</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions (Sélecteur GPS intégré) -->
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                            <button onclick="openNavigationSelector('Saint Privat d\'Allier', 44.9879741, 3.6788639)" class="flex-1 bg-trailGreen-50 hover:bg-trailGreen-100 text-trailGreen-600 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                                📍 Eglise de St Privat
+                            </button>
+                            <button onclick="viewNotes(1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition">
+                                📋 Consignes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAVITO 2: ST JEAN LACHALM -->
+                <div class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-4 z-10 ring-1 ring-emerald-500/10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-emerald-600 border-4 border-white shadow-sm ring-4 ring-emerald-50"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600 rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-emerald-600 tracking-wider">Km 20.1 • Alt 1156m • Inter: 8.8km</span>
+                                <h3 class="text-base font-black text-slate-800 mt-0.5">Saint Jean Lachalm</h3>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">ASSISTANCE ✔️</span>
+                        </div>
+
+                        <!-- Comparateur -->
+                        <div class="mt-3 grid grid-cols-4 gap-1 p-2 bg-slate-50 rounded-lg text-center text-xs">
+                            <div class="border-r border-slate-200 col-span-2">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⏱️ Cible</span>
+                                <span class="font-extrabold text-emerald-600 text-sm">09:52 - 09:56</span>
+                            </div>
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">🚨 B.H.</span>
+                                <span class="font-extrabold text-red-600">12:10</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⚡ Tête / Derniers</span>
+                                <span class="font-semibold text-slate-600 text-[10px]">09:14 / 12:16</span>
+                            </div>
+                        </div>
+
+                        <!-- Infos Déniv -->
+                        <div class="mt-3 flex justify-between items-center text-[10px] border-t border-slate-100 pt-2.5">
+                            <div class="flex flex-col gap-0.5 text-slate-500 font-semibold">
+                                <span>📈 +1252m (cum) • <span class="text-emerald-700">+688m</span></span>
+                                <span>📉 -708m (cum) • <span class="text-emerald-700">-411m</span></span>
+                            </div>
+                            <div class="flex flex-wrap gap-1 justify-end max-w-[150px]">
+                                <span class="bg-emerald-50 text-emerald-800 px-1 rounded font-bold text-[8px]">🍗 Solide</span>
+                                <span class="bg-slate-100 text-slate-600 px-1 rounded font-bold text-[8px]">🚻 WC</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                            <button onclick="openNavigationSelector('Saint Jean Lachalm', 44.9458, 3.7189)" class="flex-1 bg-trailGreen-50 hover:bg-trailGreen-100 text-trailGreen-600 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                                📍 Eglise St Jean
+                            </button>
+                            <button onclick="viewNotes(2)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition">
+                                📋 Consignes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALLEYRAS (COUCOU LOGISTIQUE) -->
+                <div class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-4 z-10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-amber-500 border-4 border-white shadow-sm ring-4 ring-amber-50"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-amber-600 tracking-wider">Km 32.2 • Alt 785m • Inter: 12.1km</span>
+                                <h3 class="text-base font-extrabold text-slate-800 mt-0.5">Alleyras</h3>
+                                <p class="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded mt-1">⚠️ Zone non assistée officielle. Coucou & mental uniquement !</p>
+                            </div>
+                            <span class="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">👋</span>
+                        </div>
+
+                        <!-- Comparateur -->
+                        <div class="mt-3 grid grid-cols-3 gap-1.5 p-2 bg-slate-50 rounded-lg text-center text-xs">
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⏱️ Cible</span>
+                                <span class="font-extrabold text-amber-600">11:13 - 11:20</span>
+                            </div>
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⚡ Tête</span>
+                                <span class="font-bold text-slate-700">10:12</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">🐢 Derniers</span>
+                                <span class="font-bold text-slate-700">14:49</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                            <button onclick="openNavigationSelector('Alleyras (Eglise St Martin)', 44.9123, 3.6721)" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                                📍 Eglise St Martin d'Alleyras
+                            </button>
+                            <button onclick="viewNotes(3)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition">
+                                📋 Consignes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAVITO 3: LAC DU BOUCHET (MI-COURSE MAJEURE) -->
+                <div class="relative bg-white rounded-xl shadow-sm border-2 border-trailOrange p-4 z-10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-trailOrange border-4 border-white shadow-sm ring-4 ring-orange-50"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-trailOrange rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-trailOrange tracking-wider">Km 48.3 • Alt 1236m • Inter: 16km</span>
+                                <h3 class="text-base font-black text-slate-800 mt-0.5">Lac du Bouchet (Maison du Site)</h3>
+                                <p class="text-xs text-trailGreen-600 font-bold mt-1">⭐ REPOS COMPLET & REMPLACEMENT TECHNIQUE ⭐</p>
+                            </div>
+                            <span class="bg-orange-100 text-trailOrange text-[10px] font-extrabold px-2 py-0.5 rounded-full">CRUCIAL</span>
+                        </div>
+
+                        <!-- Comparateur -->
+                        <div class="mt-3 grid grid-cols-4 gap-1 p-2 bg-slate-50 rounded-lg text-center text-xs">
+                            <div class="border-r border-slate-200 col-span-2">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⏱️ Cible</span>
+                                <span class="font-extrabold text-trailOrange text-sm">13:13 - 13:25</span>
+                            </div>
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">🚨 B.H.</span>
+                                <span class="font-extrabold text-red-600">18:00</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⚡ Tête / Derniers</span>
+                                <span class="font-semibold text-slate-600 text-[10px]">11:32 / 18:09</span>
+                            </div>
+                        </div>
+
+                        <!-- Infos Déniv -->
+                        <div class="mt-3 flex justify-between items-center text-[10px] border-t border-slate-100 pt-2.5">
+                            <div class="flex flex-col gap-0.5 text-slate-500 font-semibold">
+                                <span>📈 +2425m (cum) • <span class="text-trailOrange font-bold">+717m</span></span>
+                                <span>📉 -1805m (cum) • <span class="text-trailOrange font-bold">-272m</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                            <button onclick="openNavigationSelector('Lac du Bouchet', 44.9083, 3.7917)" class="flex-1 bg-orange-50 hover:bg-orange-100 text-trailOrange font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                                📍 Maison du Site
+                            </button>
+                            <button onclick="viewNotes(4)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition">
+                                📋 Consignes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AUTONOMIE : DEVES & BAINS -->
+                <div class="relative bg-slate-100 rounded-xl p-3 border border-slate-200 text-slate-600 text-[11px] leading-relaxed space-y-2 z-10">
+                    <span class="absolute -left-[25px] top-6 w-3 h-3 rounded-full bg-slate-300 border-2 border-white shadow-sm ring-4 ring-slate-100"></span>
+                    <p class="font-bold text-slate-700 flex items-center gap-1">
+                        <span>🌲</span> Zone Sauvage (Pas d'assistance autorisée) :
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 bg-white/55 p-2 rounded-lg text-[10px]">
+                        <div>
+                            <span class="font-bold text-slate-800">Mont Devès</span> (Km 59.9)<br>
+                            Alt 1418m • D+ 2943m<br>
+                        </div>
+                        <div class="border-l border-slate-200 pl-2">
+                            <span class="font-bold text-slate-800">Bains</span> (Km 64.1)<br>
+                            Alt 1181m • D+ 2963m<br>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAVITO 4: ST CHRISTOPHE SUR DOLAIZON -->
+                <div class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-4 z-10 ring-1 ring-emerald-500/10">
+                    <span class="absolute -left-[25px] top-6 w-4 h-4 rounded-full bg-emerald-600 border-4 border-white shadow-sm ring-4 ring-emerald-50"></span>
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600 rounded-l-xl"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] uppercase font-extrabold text-emerald-600 tracking-wider">Km 70.9 • Alt 913m • Inter: 6.8km</span>
+                                <h3 class="text-base font-black text-slate-800 mt-0.5">Saint Christophe sur Dolaizon</h3>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">ASSISTANCE ✔️</span>
+                        </div>
+
+                        <!-- Comparateur -->
+                        <div class="mt-3 grid grid-cols-4 gap-1 p-2 bg-slate-50 rounded-lg text-center text-xs">
+                            <div class="border-r border-slate-200 col-span-2">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⏱️ Cible</span>
+                                <span class="font-extrabold text-emerald-600 text-sm">15:35 - 15:55</span>
+                            </div>
+                            <div class="border-r border-slate-200">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">🚨 B.H.</span>
+                                <span class="font-extrabold text-red-600">22:40</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">⚡ Tête / Queue</span>
+                                <span class="font-semibold text-slate-600 text-[10px]">13:19 / 22:51</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                            <button onclick="openNavigationSelector('Saint Christophe (Mairie)', 44.9683, 3.8681)" class="flex-1 bg-trailGreen-50 hover:bg-trailGreen-100 text-trailGreen-600 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+                                📍 Mairie de St Christophe
+                            </button>
+                            <button onclick="viewNotes(5)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition">
+                                📋 Consignes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ARRIVEE: JARDIN HENRI VINAY -->
+                <div class="relative bg-gradient-to-br from-trailGreen-600 to-trailGreen-700 rounded-xl shadow-lg p-5 text-white z-10 overflow-hidden">
+                    <span class="absolute -left-[25px] top-8 w-4 h-4 rounded-full bg-trailGreen-600 border-4 border-white shadow-sm ring-4 ring-emerald-50"></span>
+                    <div class="absolute right-0 bottom-0 opacity-10 text-[140px] pointer-events-none">🏁</div>
+                    <span class="bg-trailOrange text-white text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full">Ligne d'arrivée 🎉</span>
+                    <h3 class="text-lg font-black mt-2">Le Puy-en-Velay (Jardin Henri Vinay)</h3>
+                    
+                    <div class="grid grid-cols-2 gap-3 mt-4 bg-slate-900/30 p-3 rounded-lg text-sm border border-white/5">
+                        <div>
+                            <span class="text-[9px] text-emerald-200 block uppercase font-extrabold tracking-wider">Cible d'arrivée</span>
+                            <span class="font-black text-base text-emerald-100">17:20 - 17:40</span>
+                        </div>
+                        <div>
+                            <span class="text-[9px] text-emerald-200 block uppercase font-extrabold tracking-wider">Temps Global</span>
+                            <span class="font-black text-base text-emerald-100">09h40 - 10h00</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-trailGreen-500 flex gap-2">
+                        <button onclick="openNavigationSelector('Arrivée (Jardin Henri Vinay)', 45.0425, 3.8829)" class="flex-1 bg-white hover:bg-slate-100 text-trailGreen-700 font-extrabold py-3 rounded-lg text-xs text-center transition">
+                            📍 Jardin Henri Vinay
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= TAB: LOGISTIQUE ================= -->
+        <section id="content-logistique" class="space-y-4 hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-base font-black text-slate-800 flex items-center gap-1.5">
+                    🚗 Planificateur Logistique de l'Assistant
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Les temps de conduite sont calculés d'après les réseaux routiers locaux. Les marges intègrent <span class="font-bold text-slate-800">25 minutes d'avance de sécurité</span> avant l'allure cible idéale.
+                </p>
+
+                <div class="space-y-4 mt-5">
+                    
+                    <!-- STEP 0 TO 1 -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 relative">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-xs font-black text-slate-800">Monistrol ➡️ St Privat</h4>
+                            <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🚗 ~15 min</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs mt-2 pt-2 border-t border-slate-200/55">
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Départ Max</span>
+                                <p class="font-black text-red-600">08:00</p>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Arrivée Estimée</span>
+                                <p class="font-bold text-slate-700">08:15 <span class="text-[9px] text-emerald-600 font-extrabold">(Marge OK ✔️)</span></p>
+                            </div>
+                        </div>
+                        <button onclick="openNavigationSelector('St Privat d\'Allier via Monistrol', 44.9879741, 3.6788639)" class="w-full mt-2 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg transition">
+                            🚙 Naviguer vers cette étape
+                        </button>
+                    </div>
+
+                    <!-- STEP 1 TO 2 -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 relative">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-xs font-black text-slate-800">St Privat ➡️ St Jean Lachalm</h4>
+                            <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🚗 ~20 min</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs mt-2 pt-2 border-t border-slate-200/55">
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Départ Max</span>
+                                <p class="font-black text-red-600">09:05</p>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Arrivée Estimée</span>
+                                <p class="font-bold text-slate-700">09:25 <span class="text-[9px] text-emerald-600 font-extrabold">(Marge OK ✔️)</span></p>
+                            </div>
+                        </div>
+                        <button onclick="openNavigationSelector('Saint Jean Lachalm via St Privat', 44.9458, 3.7189)" class="w-full mt-2 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg transition">
+                            🚙 Naviguer vers cette étape
+                        </button>
+                    </div>
+
+                    <!-- STEP 2 TO 3 (ALLEYRAS OPTIONNEL) -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-xs font-black text-slate-800">St Jean ➡️ Alleyras</h4>
+                            <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🚗 ~20 min</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs mt-2 pt-2 border-t border-slate-200/55">
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Départ Max</span>
+                                <p class="font-black text-red-600">10:30</p>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Arrivée Estimée</span>
+                                <p class="font-bold text-slate-700">10:50 <span class="text-[9px] text-emerald-600 font-extrabold">(Marge OK ✔️)</span></p>
+                            </div>
+                        </div>
+                        <button onclick="openNavigationSelector('Alleyras via St Jean', 44.9123, 3.6721)" class="w-full mt-2 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg transition">
+                            🚙 Naviguer vers cette étape
+                        </button>
+                    </div>
+
+                    <!-- STEP 3 TO 4 -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-xs font-black text-slate-800">Alleyras ➡️ Lac du Bouchet</h4>
+                            <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🚗 ~30 min</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs mt-2 pt-2 border-t border-slate-200/55">
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Départ Max</span>
+                                <p class="font-black text-red-600">12:20</p>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Arrivée Estimée</span>
+                                <p class="font-bold text-slate-700">12:50 <span class="text-[9px] text-emerald-600 font-extrabold">(Marge OK ✔️)</span></p>
+                            </div>
+                        </div>
+                        <button onclick="openNavigationSelector('Lac du Bouchet via Alleyras', 44.9083, 3.7917)" class="w-full mt-2 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg transition">
+                            🚙 Naviguer vers cette étape
+                        </button>
+                    </div>
+
+                    <!-- STEP 4 TO 5 -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-xs font-black text-slate-800">Lac du Bouchet ➡️ St Christophe</h4>
+                            <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🚗 ~20 min</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs mt-2 pt-2 border-t border-slate-200/55">
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Départ Max</span>
+                                <p class="font-black text-red-600">14:50</p>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Arrivée Estimée</span>
+                                <p class="font-bold text-slate-700">15:10 <span class="text-[9px] text-emerald-600 font-extrabold">(Marge OK ✔️)</span></p>
+                            </div>
+                        </div>
+                        <button onclick="openNavigationSelector('Saint Christophe via Lac du Bouchet', 44.9683, 3.8681)" class="w-full mt-2 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg transition">
+                            🚙 Naviguer vers cette étape
+                        </button>
+                    </div>
+
+                    <!-- STEP 5 TO END -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-xs font-black text-slate-800">St Christophe ➡️ Le Puy</h4>
+                            <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🚗 ~20 min</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs mt-2 pt-2 border-t border-slate-200/55">
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Départ Max</span>
+                                <p class="font-black text-red-600">16:40</p>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[9px] block uppercase font-bold">Heure Arrivée Jardin H. Vinay</span>
+                                <p class="font-bold text-slate-700">17:00 <span class="text-[9px] text-emerald-600 font-extrabold">(Marge OK ✔️)</span></p>
+                            </div>
+                        </div>
+                        <button onclick="openNavigationSelector('Arrivée Jardin Henri Vinay via St Christophe', 45.0425, 3.8829)" class="w-full mt-2 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg transition">
+                            🚙 Naviguer vers cette étape
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: CHECKLIST ================= -->
+        <section id="content-checklist" class="space-y-4 hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-base font-black text-slate-800 flex items-center gap-1.5">
+                    🎒 Matériel & Equipements Obligatoires
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Basé sur le règlement officiel UTMB. Cochez les éléments déjà packagés dans le sac de course.
+                </p>
+
+                <!-- Dynamic Weather Alert -->
+                <div id="weather-banner" class="mt-4 p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    ☀️ Mode Actif : Kit de Base Standard (obligatoire à tout moment).
+                </div>
+
+                <div class="mt-5 space-y-4">
+                    <!-- Base Kit -->
+                    <div>
+                        <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">🛡️ Kit de Base obligatoire</h4>
+                        <div class="space-y-2" id="base-kit-list">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+
+                    <!-- Extra dynamic weather items -->
+                    <div id="extra-weather-section" class="hidden">
+                        <h4 class="text-xs font-extrabold text-amber-700 uppercase tracking-wider mb-2" id="extra-weather-title">🔥 Éléments requis supplémentaires</h4>
+                        <div class="space-y-2" id="extra-weather-list">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: NUTRITION & CHARTE ================= -->
+        <section id="content-nutrition" class="space-y-4 hidden">
+            <!-- CARB COUNTER / PLAN DE CHARGE INTERACTIF -->
+            <div class="bg-gradient-to-br from-trailGreen-600 to-trailGreen-700 text-white rounded-xl shadow-md border border-trailGreen-500 p-5">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-base font-black flex items-center gap-2">
+                        ⚡ Carb Counter & Plan de Charge
+                    </h2>
+                    <span class="bg-trailOrange text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        Stratégie Glucides
+                    </span>
+                </div>
+                <p class="text-xs text-emerald-100 mb-4 leading-relaxed">
+                    Cible d'apport moyenne : <strong>~50 à 75g de glucides par heure</strong> de course. Retrouve ci-dessous le détail de ta charge glucidique embarquée (avec barre de progression visuelle sur un max de 250g).
+                </p>
+
+                <!-- INTERACTIVE ACCORDION FOR CARB SECTIONS -->
+                <div class="space-y-3">
+                    
+                    <!-- SECTION 1 -->
+                    <div class="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] text-emerald-200 uppercase font-extrabold block">Segment 1 • Km 0 ➡️ Km 11.3</span>
+                                <h4 class="text-sm font-black">Monistrol (Départ) ➡️ St Privat</h4>
+                            </div>
+                            <span class="bg-emerald-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-md shadow-sm">114.5g</span>
+                        </div>
+                        <div class="mt-2 w-full bg-white/15 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-400 h-1.5 rounded-full" style="width: 45.8%"></div>
+                        </div>
+                        <div class="mt-2.5 text-xs text-emerald-50 border-t border-white/10 pt-2 space-y-1.5">
+                            <p><strong>📦 Contenu :</strong> 2 flasques ISO Decathlon (66g) + 1 compote Overstim's (22.5g) + 1 barre Overstim's (26g).</p>
+                            <p class="text-[10px] text-emerald-200"><em>Flasque n°3 : St Yorre (0g) • Flasque n°4 : Vide (sécurité).</em></p>
+                            <p class="text-[10px] bg-slate-900/30 p-1.5 rounded text-emerald-100">💡 <strong>Conseil 1ère heure :</strong> Consommer la barre, la compote, 1 flasque ISO et la St Yorre.</p>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2 -->
+                    <div class="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] text-emerald-200 uppercase font-extrabold block">Segment 2 • Km 11.3 ➡️ Km 20.1</span>
+                                <h4 class="text-sm font-black">St Privat (Ravito 1) ➡️ St Jean</h4>
+                            </div>
+                            <span class="bg-emerald-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-md shadow-sm">114.5g</span>
+                        </div>
+                        <div class="mt-2 w-full bg-white/15 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-400 h-1.5 rounded-full" style="width: 45.8%"></div>
+                        </div>
+                        <div class="mt-2.5 text-xs text-emerald-50 border-t border-white/10 pt-2 space-y-1.5">
+                            <p><strong>📦 Contenu :</strong> 2 flasques ISO (66g) + 1 compote Overstim's (22.5g) + 1 barre Overstim's (26g).</p>
+                            <p class="text-[10px] bg-slate-900/30 p-1.5 rounded text-emerald-100">⚙️ <strong>Action d'assistance :</strong> Recharger 1 flasque ISO + 1 flasque St Yorre. Remplacer les solides consommés par 1 compote et 1 barre neuves. Boire de la St Yorre fraîche au gobelet.</p>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3 -->
+                    <div class="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] text-emerald-200 uppercase font-extrabold block">Segment 3 • Km 20.1 ➡️ Km 48.3</span>
+                                <h4 class="text-sm font-black">St Jean (Ravito 2) ➡️ Lac du Bouchet</h4>
+                            </div>
+                            <span class="bg-trailOrange text-white font-extrabold text-xs px-2.5 py-1 rounded-md shadow-sm">227.0g</span>
+                        </div>
+                        <div class="mt-2 w-full bg-white/15 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-amber-400 h-1.5 rounded-full" style="width: 90.8%"></div>
+                        </div>
+                        <div class="mt-2.5 text-xs text-emerald-50 border-t border-white/10 pt-2 space-y-1.5">
+                            <p><strong>📦 Contenu :</strong> 2 flasques ISO (66g) + 2 compotes Overstim's (45g) + 1 barre Overstim's (26g) + 2 gels TA (66g) + 1 sachet de gommes TA (24g).</p>
+                            <p class="text-[10px] bg-slate-900/30 p-1.5 rounded text-emerald-100">⚠️ <strong>Liaison longue :</strong> Portion sauvage via Alleyras (pas d'assistance). Transférer tout le stock de solides dans le gilet pour tenir.</p>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4 -->
+                    <div class="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] text-emerald-200 uppercase font-extrabold block">Segment 4 • Km 48.3 ➡️ Km 70.9</span>
+                                <h4 class="text-sm font-black">Lac du Bouchet (Ravito 3) ➡️ St Christophe</h4>
+                            </div>
+                            <span class="bg-trailOrange text-white font-extrabold text-xs px-2.5 py-1 rounded-md shadow-sm">201.0g</span>
+                        </div>
+                        <div class="mt-2 w-full bg-white/15 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-amber-400 h-1.5 rounded-full" style="width: 80.4%"></div>
+                        </div>
+                        <div class="mt-2.5 text-xs text-emerald-50 border-t border-white/10 pt-2 space-y-1.5">
+                            <p><strong>📦 Contenu :</strong> 2 flasques ISO (66g) + 2 compotes Overstim's (45g) + 2 gels TA (66g) + 1 sachet de gommes TA (24g).</p>
+                            <p class="text-[10px] bg-slate-900/30 p-1.5 rounded text-emerald-100">⚙️ <strong>Action d'assistance :</strong> Changer chaussettes/T-shirt. Remplir 2 flasques ISO + 1 flasque St Yorre. Servir du riz salé ou banane de la glacière.</p>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5 -->
+                    <div class="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] text-emerald-200 uppercase font-extrabold block">Segment 5 • Km 70.9 ➡️ Km 86.7 (Arrivée)</span>
+                                <h4 class="text-sm font-black">St Christophe (Ravito 4) ➡️ Le Puy</h4>
+                            </div>
+                            <span class="bg-emerald-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-md shadow-sm">113.5g</span>
+                        </div>
+                        <div class="mt-2 w-full bg-white/15 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-400 h-1.5 rounded-full" style="width: 45.4%"></div>
+                        </div>
+                        <div class="mt-2.5 text-xs text-emerald-50 border-t border-white/10 pt-2 space-y-1.5">
+                            <p><strong>📦 Contenu :</strong> 1 flasque ISO (33g) + 1 flasque mix St Yorre/Coca (25g) + 1 compote (22.5g) + 1 gel TA (33g).</p>
+                            <p class="text-[10px] bg-slate-900/30 p-1.5 rounded text-emerald-100">🚀 <strong>Assaut final (Allégement) :</strong> Laisser les flasques 3 & 4 vides. Préparer la frontale. Cocktail Coca/St Yorre pour couper le goût de sucre.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Fiche technique produits -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-base font-black text-slate-800 mb-2">🧪 Charte d'Apport Glucidique</h2>
+                <p class="text-xs text-slate-500 mb-4">Voici la fiche d'identité nutritionnelle des produits utilisés pour ton St Jacques.</p>
+
+                <div class="space-y-3">
+                    
+                    <!-- ISO Decathlon -->
+                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-xs text-emerald-900 block">🥤 Boisson ISO Décathlon</span>
+                            <span class="text-[10px] text-emerald-700">500 mL par flasque</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-emerald-600 text-white font-black text-xs px-2 py-0.5 rounded-full">33g Carbs</span>
+                        </div>
+                    </div>
+
+                    <!-- Overstim Purée Ultra -->
+                    <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-xs text-orange-950 block">🍎 Purée Ultra Overstim's</span>
+                            <span class="text-[10px] text-orange-800">Sachet de 90g (165 Kcal)</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-trailOrange text-white font-black text-xs px-2 py-0.5 rounded-full">22.5g Carbs</span>
+                        </div>
+                    </div>
+
+                    <!-- Overstim Barre Ultra -->
+                    <div class="p-3 bg-amber-50 rounded-xl border border-amber-100 flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-xs text-amber-950 block">🍫 Barre Ultra Overstim's</span>
+                            <span class="text-[10px] text-amber-800">Barre de 40g (Myrtille/Fraise)</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-amber-600 text-white font-black text-xs px-2 py-0.5 rounded-full">26g Carbs</span>
+                        </div>
+                    </div>
+
+                    <!-- TA Energie Gels -->
+                    <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-xs text-blue-950 block">🧪 Gel Énergie TA</span>
+                            <span class="text-[10px] text-blue-800">Tube de 40 mL (Mandarine/Orange)</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-blue-600 text-white font-black text-xs px-2 py-0.5 rounded-full">33g Carbs</span>
+                        </div>
+                    </div>
+
+                    <!-- TA Energie Gommes -->
+                    <div class="p-3 bg-purple-50 rounded-xl border border-purple-100 flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-xs text-purple-950 block">🍬 Gommes Énergie TA</span>
+                            <span class="text-[10px] text-purple-800">Sachet complet (3 gommes)</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-purple-600 text-white font-black text-xs px-2 py-0.5 rounded-full">24g Carbs</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Checklist nutrition à cocher avant course -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <div class="flex justify-between items-center mb-1">
+                    <h2 class="text-base font-black text-slate-800">🛒 Stock Préparé dans la Voiture</h2>
+                    <button onclick="askResetNutCheck()" class="text-[10px] text-red-500 font-bold hover:underline">Réinitialiser</button>
+                </div>
+                <p class="text-xs text-slate-500 mb-4">Stock de sécurité nutritionnel global à faire valider par ton assistant.</p>
+
+                <div class="space-y-2" id="nut-checklist">
+                    <!-- Javascript populated -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= MODERN REUSABLE BOTTOM SHEET (TIROIR COULISSANT) ================= -->
+    <!-- Remplaçant élégant et tactile de l'ancienne popup centrale -->
+    <div id="bottom-sheet" class="fixed inset-0 z-50 pointer-events-none">
+        <!-- Backdrop flouté -->
+        <div id="bottom-sheet-backdrop" class="absolute inset-0 bg-slate-900/0 backdrop-blur-0 transition-all duration-300 pointer-events-none" onclick="closeBottomSheet()"></div>
+        
+        <!-- Contenu du tiroir coulissant -->
+        <div id="bottom-sheet-wrapper" class="bottom-sheet-content absolute bottom-0 inset-x-0 bg-white rounded-t-3xl shadow-2xl flex flex-col pointer-events-auto border-t border-slate-200">
+            <!-- Barre de drag visuelle pour mobile -->
+            <div class="w-full py-3 flex justify-center cursor-grab active:cursor-grabbing" id="bottom-sheet-header">
+                <div class="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+            </div>
+            
+            <!-- Corps dynamique du tiroir -->
+            <div class="px-5 pb-8 overflow-y-auto max-h-[75vh]" id="bottom-sheet-body">
+                <!-- Chargé dynamiquement par JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRMATION MODAL (No window.confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="p-6 text-center">
+                <span class="text-4xl">⚠️</span>
+                <h3 class="text-base font-bold text-slate-800 mt-2">Réinitialiser la nutrition ?</h3>
+                <p class="text-xs text-slate-500 mt-2 leading-relaxed">Es-tu sûr de vouloir réinitialiser l'ensemble du stock de nutrition préparé dans la voiture d'assistance ?</p>
+                <div class="mt-6 flex gap-3">
+                    <button onclick="closeConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs transition">
+                        Annuler
+                    </button>
+                    <button onclick="confirmResetNutCheck()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl text-xs transition shadow-sm">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        
+        // Official Safety Equipments database
+        const mandatoryBaseKit = [
+            { id: 'b1', text: "Sac de course ou gilet d'hydratation adapté" },
+            { id: 'b2', text: "Téléphone portable + appli LiveRun active" },
+            { id: 'b3', text: "Batterie externe de secours (recommandée par l'UTMB)" },
+            { id: 'b4', text: "Gobelet personnel réutilisable (15 cl minimum)" },
+            { id: 'b5', text: "Réserve d'eau minimale de 1 Litre" },
+            { id: 'b6', text: "1 Lampe frontale avec piles ou batterie de rechange" },
+            { id: 'b7', text: "Couverture de survie (dimensions 1.40m x 2m minimum)" },
+            { id: 'b8', text: "Sifflet de sécurité" },
+            { id: 'b9', text: "Bande élastique auto-adhésive pour bandage (100cm x 6cm min)" },
+            { id: 'b10', text: "Réserve alimentaire d'au moins 800kcal (ex: 2 gels + 2 barres)" },
+            { id: 'b11', text: "Veste imperméable respirante avec capuche étanche" },
+            { id: 'b12', text: "Casquette, bandana ou Buff" },
+            { id: 'b13', text: "Pièce d'identité originale physique" }
+        ];
+
+        const hotWeatherKit = [
+            { id: 'h1', text: "Lunettes de soleil de sport" },
+            { id: 'h2', text: "Casquette saharienne ou couvrant entièrement tête + nuque" },
+            { id: 'h3', text: "Crème solaire avec un facteur de protection FPS 50+ minimum" },
+            { id: 'h4', text: "Réserve d'eau minimale élevée à 2 Litres obligatoires !" }
+        ];
+
+        const coldWeatherKit = [
+            { id: 'c1', text: "Lunettes de protection transparente pour le vent/brouillard" },
+            { id: 'c2', text: "Bonnet thermique" },
+            { id: 'c3', text: "Gants chauds et parfaitement imperméables" },
+            { id: 'c4', text: "Surpantalon imperméable de protection" },
+            { id: 'c5', text: "Deuxième couche thermique chaude supplémentaire entre la veste et le t-shirt" },
+            { id: 'c6', text: "Chaussures de trail-running robustes, profilées et entièrement fermées" }
+        ];
+
+        // Stock de nutrition à prévoir pour la voiture d'assistance
+        const defaultNutritionStock = [
+            { id: 'n1', text: "Poudre ISO Décathlon (de quoi faire au moins 8-10 flasques)", checked: false },
+            { id: 'n2', text: "Bouteilles de St Yorre (au moins 5-6 bouteilles fraîches)", checked: false },
+            { id: 'n3', text: "Purées Ultra Overstim's (au moins 6 sachets de rechange)", checked: false },
+            { id: 'n4', text: "Barres Ultra Overstim's (au moins 4 de rechange)", checked: false },
+            { id: 'n5', text: "Gels Énergie TA (au moins 5 tubes)", checked: false },
+            { id: 'n6', text: "Gommes Énergie TA (au moins 3 sachets)", checked: false },
+            { id: 'n7', text: "Bouteille de Coca-Cola classique de secours", checked: false },
+            { id: 'n8', text: "Riz bien cuit, refroidi et bien salé (boîte plastique)", checked: false },
+            { id: 'n9', text: "Bananes fraîches prêtes à découper", checked: false },
+            { id: 'n10', text: "Gobelet solide réutilisable pour servir la St Yorre", checked: false }
+        ];
+
+        const presetStationDetails = {
+            1: {
+                title: "Saint Privat d'Allier (Km 11.3)",
+                desc: "<strong>Premier ravitaillement de la journée !</strong><br><br>• <strong>Action rapide :</strong> L'arrêt doit durer moins de 3 minutes.<br>• <strong>Hydratation :</strong> Recharger 1 flasque d'ISO et 1 de St Yorre. La deuxième ISO est toujours pleine de ton départ.<br>• <strong>Alimentation :</strong> Casser le rythme du sucre en prenant si nécessaire une purée salée Ultra (ex: Patate douce/Butternut).<br>• Boire un gobelet complet de St Yorre fraîche sur place.<br><br>💡 <em>Consulte l'onglet Nutrition pour voir le détail des glucides à emporter sur ce tronçon.</em>"
+            },
+            2: {
+                title: "Saint Jean Lachalm (Km 20.1)",
+                desc: "<strong>Deuxième ravitaillement.</strong><br><br>• <strong>Action :</strong> Rapide et ordonnée (~3 minutes).<br>• <strong>Hydratation :</strong> Recharger 1 flasque ISO et 1 St Yorre.<br>• <strong>Matériel :</strong> Ranger soigneusement l'ensemble des solides préparés par l'assistant dans ton gilet d'effort pour aborder la liaison sauvage.<br><br>💡 <em>Consulte l'onglet Nutrition pour voir le détail des glucides à emporter sur ce tronçon.</em>"
+            },
+            3: {
+                title: "Alleyras (Km 32.2) - Interdiction d'assistance",
+                desc: "<strong>⚠️ ENCOURAGEMENT MORAL UNIQUEMENT :</strong><br><br>• Ce ravitaillement est <strong>strictement non assisté</strong> par l'organisation.<br>• Ton assistant doit rester à distance raisonnable de la zone technique pour éviter tout risque de pénalité.<br>• Profites-en pour capter un maximum d'ondes positives !<br>• Complète ton hydratation avec les liquides de l'organisation si nécessaire."
+            },
+            4: {
+                title: "Lac du Bouchet (Km 48.3) - Sommet Majeur",
+                desc: "<strong>⭐ LE GRAND PROTOCOLE (10-15 minutes) ⭐</strong><br><br>• <strong>Repos physique :</strong> Asseois-toi sur la chaise de camping, ferme les yeux et souffle pendant qu'on s'occupe de ton matériel.<br>• <strong>Soin & Confort :</strong> Sèche-toi avec la serviette, enfile un t-shirt sec, un buff frais et change de chaussettes si nécessaire (surtout s'il y a de l'humidité ou si la météo est caniculaire).<br>• <strong>Solide Salé :</strong> Mange une portion de riz bien cuit salé ou de la banane pour faire tampon dans l'estomac.<br>• <strong>Hydratation :</strong> Remplir 2 flasques d'ISO et 1 de St Yorre.<br><br>💡 <em>Consulte l'onglet Nutrition pour voir le détail des glucides à emporter sur ce tronçon.</em>"
+            },
+            5: {
+                title: "Saint Christophe sur Dolaizon (Km 70.9)",
+                desc: "<strong>Dernier coup de collier avant l'arrivée !</strong><br><br>• <strong>Stratégie d'allègement :</strong> Ne recharge que 2 flasques pour économiser du poids (le reste de la descente fait moins de 1h30).<br>• <strong>Cocktail Fin de Course :</strong> Une flasque d'ISO Décathlon (33g) et une flasque mixée Coca-St Yorre (~25g de glucides).<br>• <strong>Sécurité :</strong> Fixer et vérifier l'allumage de la frontale s'il commence à faire sombre.<br><br>💡 <em>Consulte l'onglet Nutrition pour voir le détail des glucides à emporter sur ce tronçon.</em>"
+            }
+        };
+
+        // State Setup
+        let activeWeatherKit = localStorage.getItem('trail_weather_kit') || 'base';
+        let gearCheckedState = JSON.parse(localStorage.getItem('trail_gear_checked')) || {};
+        let nutritionStockState = JSON.parse(localStorage.getItem('trail_nutrition_stock')) || defaultNutritionStock;
+
+        window.onload = function() {
+            setWeatherKit(activeWeatherKit);
+            renderNutritionChecklist();
+            initBottomSheetTouch();
+        };
+
+        function switchTab(tabId) {
+            document.getElementById('content-roadbook').classList.add('hidden');
+            document.getElementById('content-logistique').classList.add('hidden');
+            document.getElementById('content-checklist').classList.add('hidden');
+            document.getElementById('content-nutrition').classList.add('hidden');
+
+            const buttons = ['roadbook', 'logistique', 'checklist', 'nutrition'];
+            buttons.forEach(b => {
+                const btn = document.getElementById(`tab-${b}`);
+                if (btn) {
+                    btn.classList.remove('border-trailGreen-600', 'text-trailGreen-600');
+                    btn.classList.add('border-transparent', 'text-slate-500');
+                }
+            });
+
+            const targetSection = document.getElementById(`content-${tabId}`);
+            if (targetSection) targetSection.classList.remove('hidden');
+            
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('border-trailGreen-600', 'text-trailGreen-600');
+                activeBtn.classList.remove('border-transparent', 'text-slate-500');
+            }
+        }
+
+        // Setup the exact equipment list based on weather trigger
+        function setWeatherKit(kitType) {
+            activeWeatherKit = kitType;
+            localStorage.setItem('trail_weather_kit', kitType);
+
+            const kits = ['base', 'chaud', 'froid'];
+            kits.forEach(k => {
+                const btn = document.getElementById(`btn-kit-${k}`);
+                if (btn) {
+                    if (k === kitType) {
+                        btn.className = "py-2 px-2 rounded-lg text-xs font-black transition-all border border-trailOrange bg-trailOrange text-white shadow-md scale-105";
+                    } else {
+                        btn.className = "py-2 px-2 rounded-lg text-xs font-black transition-all border border-white/30 bg-white/20 text-white hover:bg-white/30";
+                    }
+                }
+            });
+
+            const banner = document.getElementById('weather-banner');
+            const extraSection = document.getElementById('extra-weather-section');
+            const extraTitle = document.getElementById('extra-weather-title');
+            const extraContainer = document.getElementById('extra-weather-list');
+
+            const baseContainer = document.getElementById('base-kit-list');
+            if (baseContainer) {
+                baseContainer.innerHTML = '';
+                mandatoryBaseKit.forEach(item => {
+                    baseContainer.appendChild(createGearElement(item));
+                });
+            }
+
+            if (kitType === 'base') {
+                if (banner) banner.innerHTML = "☀️ Mode Actif : Kit de Base Standard (obligatoire à tout moment).";
+                if (extraSection) extraSection.classList.add('hidden');
+            } else if (kitType === 'chaud') {
+                if (banner) banner.innerHTML = "🔥 Mode Actif : Kit Canicule activé ! Casquette saharienne, crème solaire et réserve d'eau augmentée.";
+                if (extraSection) extraSection.classList.remove('hidden');
+                if (extraTitle) extraTitle.innerText = "🔥 Éléments de canicule requis";
+                if (extraContainer) {
+                    extraContainer.innerHTML = '';
+                    hotWeatherKit.forEach(item => {
+                        extraContainer.appendChild(createGearElement(item));
+                    });
+                }
+            } else if (kitType === 'froid') {
+                if (banner) banner.innerHTML = "🌧️ Mode Actif : Kit Mauvais Temps activé ! Vêtements thermiques et imperméables renforcés.";
+                if (extraSection) extraSection.classList.remove('hidden');
+                if (extraTitle) extraTitle.innerText = "🌧️ Éléments de grand froid requis";
+                if (extraContainer) {
+                    extraContainer.innerHTML = '';
+                    coldWeatherKit.forEach(item => {
+                        extraContainer.appendChild(createGearElement(item));
+                    });
+                }
+            }
+        }
+
+        // Fat-finger resistant list rendering (the entire div toggles the checkbox)
+        function createGearElement(item) {
+            const div = document.createElement('div');
+            const isChecked = gearCheckedState[item.id] || false;
+            div.className = `flex items-center gap-3 p-3.5 rounded-xl border text-xs cursor-pointer select-none transition ${isChecked ? 'bg-emerald-50/50 border-emerald-100 opacity-60' : 'bg-white border-slate-200 hover:border-slate-300'}`;
+            div.onclick = () => toggleGearCheck(item.id);
+            div.innerHTML = `
+                <input type="checkbox" ${isChecked ? 'checked' : ''} class="w-5 h-5 pointer-events-none text-trailGreen-600 focus:ring-trailGreen-600 border-slate-300 rounded">
+                <span class="${isChecked ? 'line-through text-slate-400 font-normal' : 'text-slate-800 font-extrabold'}">${item.text}</span>
+            `;
+            return div;
+        }
+
+        function toggleGearCheck(id) {
+            gearCheckedState[id] = !gearCheckedState[id];
+            localStorage.setItem('trail_gear_checked', JSON.stringify(gearCheckedState));
+            setWeatherKit(activeWeatherKit);
+        }
+
+        // Nutrition checklist dynamic render
+        function renderNutritionChecklist() {
+            const container = document.getElementById('nut-checklist');
+            if (!container) return;
+            container.innerHTML = '';
+            nutritionStockState.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `flex items-center gap-3 p-3.5 rounded-xl border text-xs cursor-pointer select-none transition ${item.checked ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 hover:border-slate-300'}`;
+                div.onclick = () => toggleNutCheck(index);
+                div.innerHTML = `
+                    <input type="checkbox" ${item.checked ? 'checked' : ''} class="w-5 h-5 pointer-events-none text-trailGreen-600 focus:ring-trailGreen-600 border-slate-300 rounded">
+                    <span class="${item.checked ? 'line-through text-slate-400 font-normal' : 'text-slate-800 font-extrabold'}">${item.text}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleNutCheck(index) {
+            nutritionStockState[index].checked = !nutritionStockState[index].checked;
+            localStorage.setItem('trail_nutrition_stock', JSON.stringify(nutritionStockState));
+            renderNutritionChecklist();
+        }
+
+        function askResetNutCheck() {
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        function confirmResetNutCheck() {
+            nutritionStockState = JSON.parse(JSON.stringify(defaultNutritionStock));
+            localStorage.setItem('trail_nutrition_stock', JSON.stringify(nutritionStockState));
+            renderNutritionChecklist();
+            closeConfirmModal();
+        }
+
+        
+        // Dynamic Bottom Sheet Engine
+        function openBottomSheet(htmlContent) {
+            const sheet = document.getElementById('bottom-sheet');
+            const backdrop = document.getElementById('bottom-sheet-backdrop');
+            const wrapper = document.getElementById('bottom-sheet-wrapper');
+            const body = document.getElementById('bottom-sheet-body');
+            
+            body.innerHTML = htmlContent;
+            
+            sheet.classList.remove('pointer-events-none');
+            backdrop.classList.add('bg-slate-900/40', 'backdrop-blur-[2px]', 'pointer-events-auto');
+            sheet.classList.add('bottom-sheet-active');
+        }
+
+        function closeBottomSheet() {
+            const sheet = document.getElementById('bottom-sheet');
+            const backdrop = document.getElementById('bottom-sheet-backdrop');
+            
+            sheet.classList.remove('bottom-sheet-active');
+            backdrop.classList.remove('bg-slate-900/40', 'backdrop-blur-[2px]', 'pointer-events-auto');
+            setTimeout(() => {
+                sheet.classList.add('pointer-events-none');
+            }, 300);
+        }
+
+        // Swipe-to-close touch controller for Bottom Sheet
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        function initBottomSheetTouch() {
+            const header = document.getElementById('bottom-sheet-header');
+            const wrapper = document.getElementById('bottom-sheet-wrapper');
+
+            header.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                isDragging = true;
+                wrapper.style.transition = 'none';
+            });
+
+            header.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                currentY = e.touches[0].clientY;
+                const deltaY = currentY - startY;
+                if (deltaY > 0) {
+                    wrapper.style.transform = `translateY(${deltaY}px)`;
+                }
+            });
+
+            header.addEventListener('touchend', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                wrapper.style.transition = 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)';
+                const deltaY = currentY - startY;
+                if (deltaY > 120) {
+                    closeBottomSheet();
+                } else {
+                    wrapper.style.transform = 'translateY(0)';
+                }
+            });
+        }
+
+        // Consignes Viewer triggered inside modern Drawer
+        function viewNotes(stationId) {
+            const details = presetStationDetails[stationId];
+            if (!details) return;
+            const content = `
+                <div class="space-y-4">
+                    <h3 class="font-black text-lg text-trailGreen-700">${details.title}</h3>
+                    <div class="text-slate-600 text-sm leading-relaxed">${details.desc}</div>
+                    <button onclick="closeBottomSheet()" class="w-full mt-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3.5 rounded-xl text-xs transition">
+                        Fermer la consigne
+                    </button>
+                </div>
+            `;
+            openBottomSheet(content);
+        }
+
+        // Premium Native Route Navigator (Resolves navigation requirement)
+        function openNavigationSelector(destinationName, lat, lng) {
+            const wazeUrl = `waze://?ll=${lat},${lng}&navigate=yes`;
+            const wazeWebUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+            const googleMapsUrl = `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`;
+            const googleMapsWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            const appleMapsUrl = `maps://?daddr=${lat},${lng}`;
+            const appleMapsWebUrl = `http://maps.apple.com/?daddr=${lat},${lng}`;
+            
+            const content = `
+                <div class="space-y-5">
+                    <div class="text-center">
+                        <span class="text-3xl">🚗</span>
+                        <h3 class="font-black text-base text-slate-800 mt-2">Navigation Routière</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">${destinationName}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-2.5">
+                        <button onclick="navigateWithApp('${googleMapsUrl}', '${googleMapsWebUrl}')" class="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-900 border border-emerald-100 font-extrabold text-xs transition text-left">
+                            <span class="text-lg">🗺️</span>
+                            <div>
+                                <p class="font-black">Google Maps</p>
+                                <p class="text-[10px] text-emerald-700 font-normal">Ouvrir l'itinéraire officiel</p>
+                            </div>
+                        </button>
+
+                        <button onclick="navigateWithApp('${wazeUrl}', '${wazeWebUrl}')" class="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-blue-900 border border-blue-100 font-extrabold text-xs transition text-left">
+                            <span class="text-lg">🚙</span>
+                            <div>
+                                <p class="font-black">Waze GPS</p>
+                                <p class="text-[10px] text-blue-700 font-normal">Idéal pour le trafic local</p>
+                            </div>
+                        </button>
+
+                        <button onclick="navigateWithApp('${appleMapsUrl}', '${appleMapsWebUrl}')" class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 font-extrabold text-xs transition text-left">
+                            <span class="text-lg">🍎</span>
+                            <div>
+                                <p class="font-black">Apple Maps (iOS)</p>
+                                <p class="text-[10px] text-slate-500 font-normal">Cartes de secours natives</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="pt-2">
+                        <button onclick="copyCoordinates(${lat}, ${lng})" class="w-full py-2.5 border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+                            📋 Copier les coordonnées GPS (${lat}, ${lng})
+                        </button>
+                    </div>
+                    
+                    <button onclick="closeBottomSheet()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3.5 rounded-xl text-xs transition">
+                        Fermer le menu
+                    </button>
+                </div>
+            `;
+            openBottomSheet(content);
+        }
+
+        function navigateWithApp(appUrl, webUrl) {
+            // Essaie de lancer l'application native. En cas d'échec (ex: PC de bureau), bascule sur le lien Web.
+            const start = Date.now();
+            window.location.href = appUrl;
+            setTimeout(() => {
+                if (Date.now() - start < 1500) {
+                    window.open(webUrl, '_blank');
+                }
+            }, 500);
+        }
+
+        function copyCoordinates(lat, lng) {
+            const tempInput = document.createElement("input");
+            tempInput.value = `${lat}, ${lng}`;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            // Notification visuelle sans alert()
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "✅ Coordonnées copiées dans le presse-papier !";
+            btn.className = "w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2";
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.className = "w-full py-2.5 border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2";
+            }, 2000);
+        }
+
+        
+        // PWA Engine & Creator Panel
+        function openPWADashboard() {
+            const hasTailwindCached = localStorage.getItem('trail_cached_tailwind_v4') ? 'Sauvegardé ✔️' : 'Non synchronisé';
+            
+            const content = `
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <span class="text-3xl">📱</span>
+                        <h3 class="font-black text-base text-slate-800 mt-2">Configuration PWA & Hors-ligne</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Assistance autonome en zone blanche</p>
+                    </div>
+
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 font-semibold">Base de données CSS :</span>
+                            <span class="font-bold text-emerald-700">${hasTailwindCached}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 font-semibold">Stock de données local :</span>
+                            <span class="font-bold text-emerald-700">Actif ✔️</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 italic pt-1 border-t border-slate-200">
+                            Grâce au moteur d'hydratation local, ton application charge ses styles sans aucune liaison CDN externe.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wide">📦 Téléchargements nécessaires (PWA)</h4>
+                        <p class="text-[11px] text-slate-500 leading-normal">
+                            Pour transformer cette application en PWA installable nativement sur iOS/Android, dépose le fichier HTML et ces deux fichiers générés dans un dossier sur ton hébergement (ex: GitHub Pages, Netlify) :
+                        </p>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="generateManifest()" class="p-3 bg-trailGreen-600 hover:bg-trailGreen-700 text-white font-extrabold text-xs rounded-xl transition text-center shadow-sm">
+                                📜 Télécharger<br>manifest.json
+                            </button>
+                            <button onclick="generateServiceWorker()" class="p-3 bg-trailGreen-600 hover:bg-trailGreen-700 text-white font-extrabold text-xs rounded-xl transition text-center shadow-sm">
+                                ⚙️ Télécharger<br>sw.js
+                            </button>
+                        </div>
+                    </div>
+
+                    <button onclick="closeBottomSheet()" class="w-full mt-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3.5 rounded-xl text-xs transition">
+                        Fermer la console
+                    </button>
+                </div>
+            `;
+            openBottomSheet(content);
+        }
+
+        // dynamic download generators
+        function triggerDownload(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function generateManifest() {
+            const manifest = {
+                "name": "Roadbook Assistance - Trail de St Jacques",
+                "short_name": "StJacquesCrew",
+                "description": "Roadbook d'assistance offline pour le Trail de Saint Jacques",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#164822",
+                "theme_color": "#164822",
+                "orientation": "portrait-primary",
+                "icons": [
+                    {
+                        "src": "https://placehold.co/192x192/164822/ffffff?text=TSJ",
+                        "type": "image/png",
+                        "sizes": "192x192"
+                    },
+                    {
+                        "src": "https://placehold.co/512x512/164822/ffffff?text=TSJ",
+                        "type": "image/png",
+                        "sizes": "512x512"
+                    }
+                ]
+            };
+            triggerDownload(JSON.stringify(manifest, null, 2), "manifest.json", "application/json");
+        }
+
+        function generateServiceWorker() {
+            const swCode = `// Service Worker pour l'assistance du Trail de St Jacques
+const CACHE_NAME = 'st-jacques-assistance-v1';
+const ASSETS = [
+  './',
+  './roadbook_trail_de_st_jacques.html',
+  'https://cdn.tailwindcss.com'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(ASSETS);
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) return caches.delete(key);
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      return cachedResponse || fetch(event.request).then(response => {
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      });
+    }).catch(() => {
+      return caches.match('./roadbook_trail_de_st_jacques.html');
+    })
+  );
+});`;
+            triggerDownload(swCode, "sw.js", "application/javascript");
+        }
+    </script>
+</body>
+</html>
