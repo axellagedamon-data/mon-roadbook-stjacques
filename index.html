@@ -689,7 +689,11 @@
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed">
                     Basé sur la checklist de Mimi. Cochez les éléments déjà dans la boite à course.
                 </p>
-                
+    
+                <!-- Zone d'injection dynamique de la checklist -->
+                <div class="mt-5 space-y-4" id="mimi-checklist-list">
+                    <!-- Généré dynamiquement par le JavaScript -->
+                </div>
             </div>
         </section>
 
@@ -976,6 +980,108 @@
             { id: 'n10', text: "Gobelet solide réutilisable pour servir la St Yorre", checked: false }
         ];
 
+        // Données officielles de la checklist de Mimi
+        const mimiChecklistData = [
+            {
+                category: "👕 TEXTILE & VÊTEMENTS",
+                items: [
+                    { id: 'm1', text: "3 t-shirts" },
+                    { id: 'm2', text: "T-shirt du club" },
+                    { id: 'm3', text: "Un truc à manche longue" },
+                    { id: 'm4', text: "2 paires de chaussettes" },
+                    { id: 'm5', text: "Manchons de compression" },
+                    { id: 'm6', text: "2 paires de chaussures" },
+                    { id: 'm7', text: "Casquette" },
+                    { id: 'm8', text: "Buff" }
+                ]
+            },
+            {
+                category: "🎒 MATÉRIEL & LOGISTIQUE",
+                items: [
+                    { id: 'm9', text: "Gilet d'hydratation" },
+                    { id: 'm10', text: "Ceinture d'hydratation" },
+                    { id: 'm11', text: "Bâtons" },
+                    { id: 'm12', text: "Lunettes de soleil" },
+                    { id: 'm13', text: "Épingles à nourrice" },
+                    { id: 'm14', text: "Quartquoi" },
+                    { id: 'm15', text: "Lire le règlement de la course" }
+                ]
+            },
+            {
+                category: "🍌 NUTRITION & HYDRATATION",
+                items: [
+                    { id: 'm16', text: "X2-81 d'eau" },
+                    { id: 'm17', text: "Coca x 2" },
+                    { id: 'm18', text: "Saint-Yorre" },
+                    { id: 'm19', text: "Pâtes de fruit" },
+                    { id: 'm20', text: "Compotes" },
+                    { id: 'm21', text: "Bananes" },
+                    { id: 'm22', text: "Nutella" },
+                    { id: 'm23', text: "Quelque chose de salé" },
+                    { id: 'm24', text: "Sushi ou riz un peu trop cuit" }
+                ]
+            },
+            {
+                category: "🧼 SOINS & RÉCUPÉRATION",
+                items: [
+                    { id: 'm25', text: "Vaseline" },
+                    { id: 'm26', text: "Crème solaire" },
+                    { id: 'm27', text: "Crème hydratante" },
+                    { id: 'm28', text: "Huile de massage" },
+                    { id: 'm29', text: "Balle de massage" },
+                    { id: 'm30', text: "Lingettes bébé" },
+                    { id: 'm31', text: "Mouchoirs" },
+                    { id: 'm32', text: "Pansements & Bandes" }
+                ]
+            }
+        ];
+
+        // Chargement de l'état de la checklist de Mimi depuis le stockage local
+        let mimiCheckedState = JSON.parse(localStorage.getItem('trail_mimi_checked')) || {};
+
+        // Fonction de rendu dynamique par catégorie (Modèle UI robuste et tactile)
+        function renderMimiChecklist() {
+            const container = document.getElementById('mimi-checklist-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            mimiChecklistData.forEach(cat => {
+                // Création du bloc de catégorie
+                const catBlock = document.createElement('div');
+                catBlock.className = "mb-4";
+                catBlock.innerHTML = `<h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">${cat.category}</h4>`;
+        
+                const listWrapper = document.createElement('div');
+                listWrapper.className = "space-y-2";
+
+                // Rendu de chaque élément de la catégorie
+                cat.items.forEach(item => {
+                    const isChecked = mimiCheckedState[item.id] || false;
+                    const itemDiv = document.createElement('div');
+            
+                    // Reprise exacte de votre style de bouton anti-fausse manip (fat-finger resistant)
+                    itemDiv.className = `flex items-center gap-3 p-3.5 rounded-xl border text-xs cursor-pointer select-none transition ${isChecked ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 hover:border-slate-300'}`;
+            
+                    itemDiv.onclick = () => toggleMimiCheck(item.id);
+                    itemDiv.innerHTML = `
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} class="w-5 h-5 pointer-events-none text-trailGreen-600 focus:ring-trailGreen-600 border-slate-300 rounded">
+                        <span class="${isChecked ? 'line-through text-slate-400 font-normal' : 'text-slate-800 font-extrabold'}">${item.text}</span>
+                    `;
+                    listWrapper.appendChild(itemDiv);
+                });
+
+                catBlock.appendChild(listWrapper);
+                container.appendChild(catBlock);
+            });
+        }
+
+        // Inversion de l'état et enregistrement local
+        function toggleMimiCheck(id) {
+            mimiCheckedState[id] = !mimiCheckedState[id];
+            localStorage.setItem('trail_mimi_checked', JSON.stringify(mimiCheckedState));
+            renderMimiChecklist();
+        }    
+
         const presetStationDetails = {
             1: {
                 title: "Saint Privat d'Allier (Km 11.3)",
@@ -1031,6 +1137,7 @@
         window.onload = function() {
             setWeatherKit(activeWeatherKit);
             renderNutritionChecklist();
+            renderMimiChecklist();
             initBottomSheetTouch();
         };
 
@@ -1428,7 +1535,7 @@
 
         function generateServiceWorker() {
             const swCode = `// Service Worker pour l'assistance du Trail de St Jacques
-const CACHE_NAME = 'st-jacques-assistance-v1';
+const CACHE_NAME = 'st-jacques-assistance-v2'; // <-- Augmenté ici à v2 pour vider le cache précédent
 const ASSETS = [
   './',
   './roadbook_trail_de_st_jacques.html',

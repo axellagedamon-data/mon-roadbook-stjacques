@@ -1,18 +1,14 @@
 // Service Worker pour l'assistance du Trail de St Jacques
-const CACHE_NAME = 'st-jacques-assistance-v2'; // Changement de version pour forcer le smartphone à se mettre à jour
-
-// La liste des fichiers gravés dans le téléphone (Tu as renommé le HTML en index.html)
+const CACHE_NAME = 'st-jacques-assistance-v2'; // <-- Augmenté ici à v2 pour vider le cache précédent
 const ASSETS = [
   './',
-  './index.html',      // Modifié ici
-  './manifest.json',  // Ajouté ici (indispensable pour que l'icône reste disponible hors-ligne)
+  './roadbook_trail_de_st_jacques.html',
   'https://cdn.tailwindcss.com'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      // Si un seul de ces fichiers renvoie une erreur 404, l'installation échoue.
       return cache.addAll(ASSETS);
     })
   );
@@ -42,8 +38,7 @@ self.addEventListener('fetch', event => {
         });
       });
     }).catch(() => {
-      // Fallback de secours si le réseau coupe complètement
-      return caches.match('./index.html'); // Modifié ici
+      return caches.match('./roadbook_trail_de_st_jacques.html');
     })
   );
 });
