@@ -108,7 +108,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-emerald-300 font-bold flex items-center gap-1.5 bg-trailGreen-700/50 px-2.5 py-1 rounded-full border border-emerald-500/20">
                         <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                        13 Juin • 07:40
+                        13 Juin • <span id="live-clock">--:--:--</span>
                     </span>
                     <!-- Bouton Configuration PWA en haut à droite -->
                     <button onclick="openPWADashboard()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition text-white border border-white/10" title="Installation PWA">
@@ -987,6 +987,30 @@
                 desc: "<strong>Dernier coup de collier avant l'arrivée !</strong><br><br>• <strong>Stratégie d'allègement :</strong> Ne recharge que 2 flasques pour économiser du poids (le reste de la descente fait moins de 1h30).<br>• <strong>Cocktail Fin de Course :</strong> Une flasque d'ISO Décathlon (33g) et une flasque mixée Coca-St Yorre (~25g de glucides).<br>• <strong>Sécurité :</strong> Fixer et vérifier l'allumage de la frontale s'il commence à faire sombre.<br><br>💡 <em>Consulte l'onglet Nutrition pour voir le détail des glucides à emporter sur ce tronçon.</em>"
             }
         };
+
+        // Fonction pour mettre à jour l'horloge en temps réel
+        function initClock() {
+            const clockElement = document.getElementById('live-clock');
+            if (!clockElement) return;
+
+            function updateTime() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+                // Affichage au format HH:mm:ss pour un rendu dynamique
+                clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+            }
+
+            // Exécution immédiate au chargement pour éviter le "blank" (--:--:--)
+            updateTime(); 
+            // Mise à jour toutes les secondes
+            setInterval(updateTime, 1000);
+        }
+
+        // Lancement de l'horloge dès que le DOM est prêt
+        document.addEventListener('DOMContentLoaded', initClock);
 
         // State Setup
         let activeWeatherKit = localStorage.getItem('trail_weather_kit') || 'base';
