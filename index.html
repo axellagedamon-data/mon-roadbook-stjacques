@@ -1,11 +1,35 @@
-<!DOCTYPE html>
-<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Roadbook d'Assistance - Trail de St Jacques</title>
     
-    <!-- Fallback de style immédiat en cas d'absence de réseau avant l'initialisation de Tailwind -->
+    <!-- Lien PWA obligatoire pour l'installation sur le téléphone de Mimi -->
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- Chargement standard de Tailwind (Autorisé par le navigateur et intercepté par ton sw.js) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Injection immédiate de tes configurations de couleurs pour le trail -->
+    <script>
+        window.tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        trailGreen: {
+                            50: '#f2f8f3',
+                            100: '#e1efe4',
+                            500: '#1e5f2f',
+                            600: '#164822',
+                            700: '#103419',
+                        },
+                        trailOrange: '#e07a5f',
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Styles indispensables pour l'interface de base et les animations GPU -->
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -36,9 +60,10 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        /* Style pour le tiroir (Bottom Sheet) pour garantir des transitions GPU fluides */
+        
+        /* Ajustement UX : Correction de la transition du fond (300ms au lieu de 300s !) */
         .bottom-sheet-backdrop {
-            transition: opacity 300s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
         }
         .bottom-sheet-content {
             transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -51,77 +76,15 @@
     </style>
 
     <script>
-        // Cette fonction charge Tailwind depuis le cache local (LocalStorage) s'il existe.
-        // Sinon, elle le télécharge en ligne et le met en cache pour les prochaines fois.
-        // Cela résout définitivement la dépendance critique au réseau (No CDN issues offline).
-        function loadFrameworksOffline() {
-            const cacheKeyTailwind = 'trail_cached_tailwind_v4';
-            const tailwindUrl = 'https://cdn.tailwindcss.com';
-            const cachedTailwind = localStorage.getItem(cacheKeyTailwind);
-
-            if (cachedTailwind) {
-                injectScript(cachedTailwind);
-                initTailwindConfig();
-                hideLoader();
-            } else {
-                // Essai de téléchargement en ligne
-                fetch(tailwindUrl)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network failed');
-                        return response.text();
-                    })
-                    .then(code => {
-                        localStorage.setItem(cacheKeyTailwind, code);
-                        injectScript(code);
-                        initTailwindConfig();
-                        console.log("Tailwind sauvegardé localement pour utilisation hors-ligne !");
-                        hideLoader();
-                    })
-                    .catch(err => {
-                        console.warn("Impossible de récupérer Tailwind en ligne (Mode Hors-ligne strict). Utilisation d'un rendu dégradé.");
-                        hideLoader();
-                    });
-            }
-        }
-
-        function injectScript(code) {
-            const script = document.createElement('script');
-            script.text = code;
-            document.head.appendChild(script);
-        }
-
-        function initTailwindConfig() {
-            if (window.tailwind) {
-                tailwind.config = {
-                    theme: {
-                        extend: {
-                            colors: {
-                                trailGreen: {
-                                    50: '#f2f8f3',
-                                    100: '#e1efe4',
-                                    500: '#1e5f2f',
-                                    600: '#164822',
-                                    700: '#103419',
-                                },
-                                trailOrange: '#e07a5f',
-                            }
-                        }
-                    }
-                };
-            }
-        }
-
+        // Effacement propre du rideau de chargement une fois que tout le DOM et Tailwind sont prêts
         function hideLoader() {
-            setTimeout(() => {
-                const loader = document.getElementById('offline-loader');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.remove(), 500);
-                }
-            }, 300);
+            const loader = document.getElementById('offline-loader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }
         }
-
-        window.addEventListener('DOMContentLoaded', loadFrameworksOffline);
+        window.addEventListener('load', hideLoader);
     </script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen pb-16 antialiased select-none">
