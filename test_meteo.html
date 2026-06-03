@@ -1568,4 +1568,348 @@
     function toggleGearCheck(id) {
         gearCheckedState[id] = !gearCheckedState[id];
         localStorage.setItem('trail_gear_checked', JSON.stringify(gearCheckedState));
-        setWeather
+        setWeatherKit(activeWeatherKit);
+    }
+
+    // Nutrition checklist dynamic render
+    function renderNutritionChecklist() {
+        const container = document.getElementById('nut-checklist');
+        if (!container) return;
+        container.innerHTML = '';
+        nutritionStockState.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = `flex items-center gap-3 p-3.5 rounded-xl border text-xs cursor-pointer select-none transition ${item.checked ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 hover:border-slate-300'}`;
+            div.onclick = () => toggleNutCheck(index);
+            div.innerHTML = `
+                <input type="checkbox" ${item.checked ? 'checked' : ''} class="w-5 h-5 pointer-events-none text-trailGreen-600 focus:ring-trailGreen-600 border-slate-300 rounded">
+                <span class="${item.checked ? 'line-through text-slate-400 font-normal' : 'text-slate-800 font-extrabold'}">${item.text}</span>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function toggleNutCheck(index) {
+        nutritionStockState[index].checked = !nutritionStockState[index].checked;
+        localStorage.setItem('trail_nutrition_stock', JSON.stringify(nutritionStockState));
+        renderNutritionChecklist();
+    }
+
+    function askResetNutCheck() {
+        document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    function confirmResetNutCheck() {
+        nutritionStockState = JSON.parse(JSON.stringify(defaultNutritionStock));
+        localStorage.setItem('trail_nutrition_stock', JSON.stringify(nutritionStockState));
+        renderNutritionChecklist();
+        closeConfirmModal();
+    }
+
+    
+    // Dynamic Bottom Sheet Engine
+    function openBottomSheet(htmlContent) {
+        const sheet = document.getElementById('bottom-sheet');
+        const backdrop = document.getElementById('bottom-sheet-backdrop');
+        const wrapper = document.getElementById('bottom-sheet-wrapper');
+        const body = document.getElementById('bottom-sheet-body');
+        
+        body.innerHTML = htmlContent;
+        
+        sheet.classList.remove('pointer-events-none');
+        backdrop.classList.add('bg-slate-900/40', 'backdrop-blur-[2px]', 'pointer-events-auto');
+        sheet.classList.add('bottom-sheet-active');
+    }
+
+    function closeBottomSheet() {
+        const sheet = document.getElementById('bottom-sheet');
+        const backdrop = document.getElementById('bottom-sheet-backdrop');
+        
+        sheet.classList.remove('bottom-sheet-active');
+        backdrop.classList.remove('bg-slate-900/40', 'backdrop-blur-[2px]', 'pointer-events-auto');
+        setTimeout(() => {
+            sheet.classList.add('pointer-events-none');
+        }, 300);
+    }
+
+    // Swipe-to-close touch controller for Bottom Sheet
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    function initBottomSheetTouch() {
+        const header = document.getElementById('bottom-sheet-header');
+        const wrapper = document.getElementById('bottom-sheet-wrapper');
+
+        header.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            wrapper.style.transition = 'none';
+        });
+
+        header.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+            if (deltaY > 0) {
+                wrapper.style.transform = `translateY(${deltaY}px)`;
+            }
+        });
+
+        header.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            wrapper.style.transition = 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)';
+            const deltaY = currentY - startY;
+            if (deltaY > 120) {
+                closeBottomSheet();
+            } else {
+                wrapper.style.transform = 'translateY(0)';
+            }
+        });
+    }
+
+    // Consignes Viewer triggered inside modern Drawer
+    function viewNotes(stationId) {
+        const details = presetStationDetails[stationId];
+        if (!details) return;
+        const content = `
+            <div class="space-y-4">
+                <h3 class="font-black text-lg text-trailGreen-700">${details.title}</h3>
+                <div class="text-slate-600 text-sm leading-relaxed">${details.desc}</div>
+                <button onclick="closeBottomSheet()" class="w-full mt-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3.5 rounded-xl text-xs transition">
+                    Fermer la consigne
+                </button>
+            </div>
+        `;
+        openBottomSheet(content);
+    }
+
+    // Premium Native Route Navigator (Resolves navigation requirement)
+    function openNavigationSelector(destinationName, lat, lng) {
+        const wazeUrl = `waze://?ll=${lat},${lng}&navigate=yes`;
+        const wazeWebUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+        const googleMapsUrl = `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`;
+        const googleMapsWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        const appleMapsUrl = `maps://?daddr=${lat},${lng}`;
+        const appleMapsWebUrl = `http://maps.apple.com/?daddr=${lat},${lng}`;
+        
+        const content = `
+            <div class="space-y-5">
+                <div class="text-center">
+                    <span class="text-3xl">🚗</span>
+                    <h3 class="font-black text-base text-slate-800 mt-2">Navigation Routière</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">${destinationName}</p>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-2.5">
+                    <button onclick="navigateWithApp('${googleMapsUrl}', '${googleMapsWebUrl}')" class="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 text-emerald-900 border border-emerald-100 font-extrabold text-xs transition text-left">
+                        <span class="text-lg">🗺️</span>
+                        <div>
+                            <p class="font-black">Google Maps</p>
+                            <p class="text-[10px] text-emerald-700 font-normal">Ouvrir l'itinéraire officiel</p>
+                        </div>
+                    </button>
+
+                    <button onclick="navigateWithApp('${wazeUrl}', '${wazeWebUrl}')" class="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-blue-900 border border-blue-100 font-extrabold text-xs transition text-left">
+                        <span class="text-lg">🚙</span>
+                        <div>
+                            <p class="font-black">Waze GPS</p>
+                            <p class="text-[10px] text-blue-700 font-normal">Idéal pour le trafic local</p>
+                        </div>
+                    </button>
+
+                    <button onclick="navigateWithApp('${appleMapsUrl}', '${appleMapsWebUrl}')" class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 font-extrabold text-xs transition text-left">
+                        <span class="text-lg">🍎</span>
+                        <div>
+                            <p class="font-black">Apple Maps (iOS)</p>
+                            <p class="text-[10px] text-slate-500 font-normal">Cartes de secours natives</p>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="pt-2">
+                    <button onclick="copyCoordinates(${lat}, ${lng})" class="w-full py-2.5 border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+                        📋 Copier les coordonnées GPS (${lat}, ${lng})
+                    </button>
+                </div>
+                
+                <button onclick="closeBottomSheet()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3.5 rounded-xl text-xs transition">
+                    Fermer le menu
+                </button>
+            </div>
+        `;
+        openBottomSheet(content);
+    }
+
+    function navigateWithApp(appUrl, webUrl) {
+        // Essaie de lancer l'application native. En cas d'échec (ex: PC de bureau), bascule sur le lien Web.
+        const start = Date.now();
+        window.location.href = appUrl;
+        setTimeout(() => {
+            if (Date.now() - start < 1500) {
+                window.open(webUrl, '_blank');
+            }
+        }, 500);
+    }
+
+    function copyCoordinates(lat, lng) {
+        const tempInput = document.createElement("input");
+        tempInput.value = `${lat}, ${lng}`;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        
+        // Notification visuelle sans alert()
+        const btn = event.currentTarget;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "✅ Coordonnées copiées dans le presse-papier !";
+        btn.className = "w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2";
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.className = "w-full py-2.5 border-2 border-dashed border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2";
+        }, 2000);
+    }
+
+    
+    // PWA Engine & Creator Panel
+    function openPWADashboard() {
+        const hasTailwindCached = localStorage.getItem('trail_cached_tailwind_v4') ? 'Sauvegardé ✔️' : 'Non synchronisé';
+        
+        const content = `
+            <div class="space-y-4">
+                <div class="text-center">
+                    <span class="text-3xl">📱</span>
+                    <h3 class="font-black text-base text-slate-800 mt-2">Configuration PWA & Hors-ligne</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Assistance autonome en zone blanche</p>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500 font-semibold">Base de données CSS :</span>
+                        <span class="font-bold text-emerald-700">${hasTailwindCached}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500 font-semibold">Stock de données local :</span>
+                        <span class="font-bold text-emerald-700">Actif ✔️</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 italic pt-1 border-t border-slate-200">
+                        Grâce au moteur d'hydratation local, ton application charge ses styles sans aucune liaison CDN externe.
+                    </p>
+                </div>
+
+                <div class="space-y-2.5">
+                    <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wide">📦 Téléchargements nécessaires (PWA)</h4>
+                    <p class="text-[11px] text-slate-500 leading-normal">
+                        Pour transformer cette application en PWA installable nativement sur iOS/Android, dépose le fichier HTML et ces deux fichiers générés dans un dossier sur ton hébergement (ex: GitHub Pages, Netlify) :
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="generateManifest()" class="p-3 bg-trailGreen-600 hover:bg-trailGreen-700 text-white font-extrabold text-xs rounded-xl transition text-center shadow-sm">
+                            📜 Télécharger<br>manifest.json
+                        </button>
+                        <button onclick="generateServiceWorker()" class="p-3 bg-trailGreen-600 hover:bg-trailGreen-700 text-white font-extrabold text-xs rounded-xl transition text-center shadow-sm">
+                            ⚙️ Télécharger<br>sw.js
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="closeBottomSheet()" class="w-full mt-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3.5 rounded-xl text-xs transition">
+                    Fermer la console
+                </button>
+            </div>
+        `;
+        openBottomSheet(content);
+    }
+
+    // dynamic download generators
+    function triggerDownload(content, filename, contentType) {
+        const blob = new Blob([content], { type: contentType });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function generateManifest() {
+        const manifest = {
+            "name": "Roadbook Assistance - Trail de St Jacques",
+            "short_name": "StJacquesCrew",
+            "description": "Roadbook d'assistance offline pour le Trail de Saint Jacques",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#164822",
+            "theme_color": "#164822",
+            "orientation": "portrait-primary",
+            "icons": [
+                {
+                    "src": "https://placehold.co/192x192/164822/ffffff?text=TSJ",
+                    "type": "image/png",
+                    "sizes": "192x192"
+                },
+                {
+                    "src": "https://placehold.co/512x512/164822/ffffff?text=TSJ",
+                    "type": "image/png",
+                    "sizes": "512x512"
+                }
+            ]
+        };
+        triggerDownload(JSON.stringify(manifest, null, 2), "manifest.json", "application/json");
+    }
+
+    function generateServiceWorker() {
+        const swCode = `// Service Worker pour l'assistance du Trail de St Jacques
+const CACHE_NAME = 'st-jacques-assistance-v2'; // <-- Augmenté ici à v2 pour vider le cache précédent
+const ASSETS = [
+  './',
+  './roadbook_trail_de_st_jacques.html',
+  'https://cdn.tailwindcss.com'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(ASSETS);
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) return caches.delete(key);
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      return cachedResponse || fetch(event.request).then(response => {
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      });
+    }).catch(() => {
+      return caches.match('./roadbook_trail_de_st_jacques.html');
+    })
+  );
+});`;
+        triggerDownload(swCode, "sw.js", "application/javascript");
+    }
+    </script>
+</body>
+</html>
